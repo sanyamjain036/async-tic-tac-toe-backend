@@ -15,8 +15,9 @@ app.use(express.urlencoded({ extended: false }));
 app.get("/", (req, res) => {
     res.send("Hello World!");
   });
-  
+
 app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/games', require('./routes/gameRoutes'));
 
 //custom error handler
 app.use(errorHandler);
