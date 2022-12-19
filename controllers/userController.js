@@ -7,19 +7,25 @@ const User = require('../models/userModel')
 // @route   POST /api/users
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
-  const { username , email, password } = req.body
+  const { name, username , email, password } = req.body
 
-  if (!username || !email || !password) {
+  if (!name || !username || !email || !password) {
     res.status(400)
     throw new Error('Please add all fields')
   }
 
   // Check if user exists
-  const userExists = await User.findOne({ email })
+  const emailExists = await User.findOne({ email })
+  const usernameExists = await User.findOne({ username })
 
-  if (userExists) {
+  if (emailExists) {
     res.status(400)
-    throw new Error('User already exists')
+    throw new Error('Email already exists')
+  }
+
+  if (usernameExists) {
+    res.status(400)
+    throw new Error('Username already exists')
   }
 
   // Hash password
@@ -28,6 +34,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   // Create user
   const user = await User.create({
+    name,
     username,
     email,
     password: hashedPassword,
@@ -36,9 +43,9 @@ const registerUser = asyncHandler(async (req, res) => {
   if (user) {
     res.status(201).json({
       _id: user.id,
-      name: user.name,
+      name:user.name,
+      username: user.username,
       email: user.email,
-      token: generateToken(user._id),
     })
   } else {
     res.status(400)
@@ -50,15 +57,16 @@ const registerUser = asyncHandler(async (req, res) => {
 // @route   POST /api/users/login
 // @access  Public
 const loginUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body
+  const { username, password } = req.body
 
   // Check for user email
-  const user = await User.findOne({ email })
+  const user = await User.findOne({ username })
 
   if (user && (await bcrypt.compare(password, user.password))) {
     res.json({
       _id: user.id,
       name: user.name,
+      username: user.username,
       email: user.email,
       token: generateToken(user._id),
     })
