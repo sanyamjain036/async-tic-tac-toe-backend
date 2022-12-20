@@ -110,7 +110,10 @@ const updateGame = asyncHandler(async (req, res) => {
     game.save();
   }
 
-  const populatedGame = await Game.findById(req.params.id).populate("User");
+  const populatedGame = await Game.findById(req.params.id)
+    .populate({ path: "player1", select: "_id name username email" })
+    .populate({ path: "player2", select: "_id name username email" })
+    .populate({ path: "winner", select: "_id name username email" });
   return res.status(201).json(populatedGame);
 });
 
@@ -157,13 +160,13 @@ const checkResult = (arr) => {
       return arr[a]; // return winnerID
     }
   }
-
+  //Pending
   for (let item of arr) {
     if (item === "") {
       return "PENDING";
     }
   }
-
+  //Draw
   return "DRAW";
 };
 
