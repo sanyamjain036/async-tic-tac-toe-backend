@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const asyncHandler = require("express-async-handler");
 const User = require("../models/userModel");
 const Game = require("../models/gameModel");
+const mongoose = require("mongoose");
 const toId = mongoose.Types.ObjectId;
 
 // @desc    Create new game
@@ -15,6 +16,11 @@ const createGame = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Enter a email");
   }
+  // check if user plays game by itself
+  if (req.user.email === email) {
+    res.status(400);
+    throw new Error("Enter other user email");
+  }
 
   // Check if other user doesn't exists
   const otherUser = await User.findOne({ email });
@@ -25,14 +31,19 @@ const createGame = asyncHandler(async (req, res) => {
   }
 
   //already in other game with same user or not
- const otherGamewithSameUser= await Game.find({
+  const otherGamewithSameUser = await Game.find({
     $and: [
-        { $or: [ { $and: [{player1:req.user.id}, {player2:otherUser._id}] } , { $and: [{player2:req.user.id}, {player1:otherUser._id}] } ]  },
-        { status: 0 }
+      {
+        $or: [
+          { $and: [{ player1: req.user.id }, { player2: otherUser._id }] },
+          { $and: [{ player2: req.user.id }, { player1: otherUser._id }] },
+        ],
+      },
+      { status: 0 },
     ],
   });
 
-  if(otherGamewithSameUser){
+  if (otherGamewithSameUser.length > 0) {
     res.status(400);
     throw new Error("Already, game is created");
   }
@@ -82,30 +93,49 @@ const updateGame = asyncHandler(async (req, res) => {
   if (result === "PENDING") {
     game.currentGame = req.body.currentGame;
     game.status = 0;
-    game.currentChance =
-      game.currentChance === game.player1 ? game.player2 : game.player1;
+    if (game.currentChance.equals(game.player1)) {
+      game.currentChance = game.player2;
+    } else {
+      game.currentChance = game.player1;
+    }
     game.save();
-    return res.json(game);
   } else if (result === "DRAW") {
     game.currentGame = req.body.currentGame;
     game.status = -1;
     game.save();
-    return res.json(game);
-  }
-  else {
+  } else {
     game.currentGame = req.body.currentGame;
     game.status = 1;
-    game.winner=toId(result);
+    game.winner = toId(result);
     game.save();
-    return res.json(game);
   }
+
+  const populatedGame = await Game.findById(req.params.id).populate("User");
+  return res.status(201).json(populatedGame);
 });
 
-// @desc    Get user data
-// @route   GET /api/users/me
+// @desc    Get a game
+// @route   GET /api/games/:id
 // @access  Private
 const getGame = asyncHandler(async (req, res) => {
-  res.status(200).json(req.user);
+  const game = await Game.findById(req.params.id)
+    .populate({ path: "player1", select: "_id name username email" })
+    .populate({ path: "player2", select: "_id name username email" })
+    .populate({ path: "winner", select: "_id name username email" });
+  res.status(200).json(game);
+});
+
+// @desc    Get all games
+// @route   GET /api/games
+// @access  Private
+const getAllGames = asyncHandler(async (req, res) => {
+  const games = await Game.find({
+    $or: [{ player1: req.user.id }, { player2: req.user.id }],
+  })
+    .populate({ path: "player1", select: "_id name username email" })
+    .populate({ path: "player2", select: "_id name username email" })
+    .populate({ path: "winner", select: "_id name username email" });
+  res.status(200).json(games);
 });
 
 // Result Logic
@@ -123,7 +153,7 @@ const checkResult = (arr) => {
   //winning
   for (let logic of winConditions) {
     const [a, b, c] = logic;
-    if (arr[a] !== "" && arr[a] === state[b] && arr[a] === state[c]) {
+    if (arr[a] !== "" && arr[a] === arr[b] && arr[a] === arr[c]) {
       return arr[a]; // return winnerID
     }
   }
@@ -138,7 +168,8 @@ const checkResult = (arr) => {
 };
 
 module.exports = {
-  registerUser,
-  loginUser,
-  getMe,
+  createGame,
+  updateGame,
+  getGame,
+  getAllGames,
 };

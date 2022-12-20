@@ -4,12 +4,14 @@ const {
     createGame,
     updateGame,
     getGame,
-} = require('../controllers/userController')
+    getAllGames
+} = require('../controllers/gameController')
 
 const { protect } = require('../middleware/authMiddleware')
 
 router.post('/create', protect,createGame)
 router.put('/update/:id',protect ,updateGame)
 router.get('/:id',protect ,getGame)
+router.get('/',protect ,getAllGames)
 
 module.exports = router
