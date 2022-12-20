@@ -1,6 +1,7 @@
 const {errorHandler} = require('./middleware/errorMiddleware')
 const express = require("express");
 const connectDB = require("./db");
+const cors = require('cors')
 require('colors');
 require("dotenv").config();
 
@@ -11,6 +12,7 @@ connectDB();
 app.use(express.json());
 // parse requests of content-type - application/x-www-form-urlencoded
 app.use(express.urlencoded({ extended: false }));
+app.use(cors());
 
 app.get("/", (req, res) => {
     res.send("Hello World!");
