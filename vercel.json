@@ -1,0 +1,10 @@
+{
+    "version": 2,
+    "name": "async-tic-tac-toe",
+    "builds": [
+      { "src": "index.js", "use": "@vercel/node" }
+    ],
+    "routes": [
+      { "src": "/(.*)", "dest": "/index.js" }
+    ]
+  }
