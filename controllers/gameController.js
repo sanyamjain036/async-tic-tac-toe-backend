@@ -146,7 +146,7 @@ const getAllGames = asyncHandler(async (req, res) => {
     .populate({ path: "player1", select: "_id name username email" })
     .populate({ path: "player2", select: "_id name username email" })
     .populate({ path: "winner", select: "_id name username email" })
-    .sort({ createdAt: "desc" });
+    .sort({ updatedAt: "desc" });
   res.status(200).json(games);
 });
 
