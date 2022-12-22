@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const asyncHandler = require("express-async-handler");
 const User = require("../models/userModel");
 const Game = require("../models/gameModel");
+const {isEmailValid} =require("../helper/helper");
 const mongoose = require("mongoose");
 const toId = mongoose.Types.ObjectId;
 
@@ -15,6 +16,10 @@ const createGame = asyncHandler(async (req, res) => {
   if (!email) {
     res.status(400);
     throw new Error("Enter a email");
+  }
+  if(!isEmailValid(email)){
+    res.status(400);
+    throw new Error("Enter a valid email");
   }
   // check if user plays game by itself
   if (req.user.email === email) {
@@ -88,6 +93,12 @@ const updateGame = asyncHandler(async (req, res) => {
     throw new Error("Wait for next player to move!");
   }
 
+  // check if no changes done by user which have a currentChance
+  if (arrayEquals(game.currentGame, req.body.currentGame)) {
+    res.status(400);
+    throw new Error("Make your move!");
+  }
+
   const result = checkResult(req.body.currentGame);
 
   if (result === "PENDING") {
@@ -98,18 +109,15 @@ const updateGame = asyncHandler(async (req, res) => {
     } else {
       game.currentChance = game.player1;
     }
-    game.save();
   } else if (result === "DRAW") {
     game.currentGame = req.body.currentGame;
     game.status = -1;
-    game.save();
   } else {
     game.currentGame = req.body.currentGame;
     game.status = 1;
     game.winner = toId(result);
-    game.save();
   }
-
+  await game.save();
   const populatedGame = await Game.findById(req.params.id)
     .populate({ path: "player1", select: "_id name username email" })
     .populate({ path: "player2", select: "_id name username email" })
@@ -137,7 +145,8 @@ const getAllGames = asyncHandler(async (req, res) => {
   })
     .populate({ path: "player1", select: "_id name username email" })
     .populate({ path: "player2", select: "_id name username email" })
-    .populate({ path: "winner", select: "_id name username email" });
+    .populate({ path: "winner", select: "_id name username email" })
+    .sort({ createdAt: "desc" });
   res.status(200).json(games);
 });
 
@@ -169,6 +178,15 @@ const checkResult = (arr) => {
   //Draw
   return "DRAW";
 };
+
+function arrayEquals(a, b) {
+  return (
+    Array.isArray(a) &&
+    Array.isArray(b) &&
+    a.length === b.length &&
+    a.every((val, index) => val === b[index])
+  );
+}
 
 module.exports = {
   createGame,

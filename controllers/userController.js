@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const asyncHandler = require("express-async-handler");
 const User = require("../models/userModel");
+const { isEmailValid } = require("../helper/helper");
 
 // @desc    Register new user
 // @route   POST /api/users
@@ -13,7 +14,10 @@ const registerUser = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Please add all fields");
   }
-
+  if (!isEmailValid(email)) {
+    res.status(400);
+    throw new Error("Enter a valid email");
+  }
   // Check if user exists
   const emailExists = await User.findOne({ email });
   const usernameExists = await User.findOne({ username });
