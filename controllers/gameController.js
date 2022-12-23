@@ -3,9 +3,10 @@ const bcrypt = require("bcryptjs");
 const asyncHandler = require("express-async-handler");
 const User = require("../models/userModel");
 const Game = require("../models/gameModel");
-const {isEmailValid} =require("../helper/helper");
+const { isEmailValid } = require("../helper/helper");
 const mongoose = require("mongoose");
 const toId = mongoose.Types.ObjectId;
+const { io } = require("../index");
 
 // @desc    Create new game
 // @route   POST /api/games/create
@@ -17,7 +18,7 @@ const createGame = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Enter a email");
   }
-  if(!isEmailValid(email)){
+  if (!isEmailValid(email)) {
     res.status(400);
     throw new Error("Enter a valid email");
   }
@@ -122,7 +123,8 @@ const updateGame = asyncHandler(async (req, res) => {
     .populate({ path: "player1", select: "_id name username email" })
     .populate({ path: "player2", select: "_id name username email" })
     .populate({ path: "winner", select: "_id name username email" });
-  return res.status(201).json(populatedGame);
+  io.emit("update-game", populatedGame);
+  return res.status(201).json({ message: "Game Updated Successfully!" });
 });
 
 // @desc    Get a game
